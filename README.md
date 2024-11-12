@@ -271,6 +271,10 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
             
 、、、
 
+### 总结与分析反向传播
+
+
+
 
 
 
