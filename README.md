@@ -109,8 +109,165 @@ eval(), train(): 设置模块为评估模式或训练模式。
 
 ## Module1
 
+### Task 1.1: Numerical Derivatives
+
+实现数值微分
+
+、、、
+def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) -> Any:
+    vals1 = [v for v in vals]
+    vals1[arg] += epsilon
+    return (f(*vals1) - f(*vals)) / epsilon
+、、、
+
+### Task 1.2: Scalars
+
+完成scalarFunction中各个子类Scalar函数的forward前向传播函数，关键点是需要存储关键变量来给反向传播去使用
+
+Add加法函数，对加法求导为1，所以无需记录
+
+、、、
+    def forward(ctx: Context, a: float, b: float) -> float:
+        return a + b
+、、、
+
+Log函数，需要存储传入相乘的系数，供反向传播使用
+
+、、、
+    def forward(ctx: Context, a: float) -> float:
+        ctx.save_for_backward(a)
+        return operators.log(a)
+、、、
+
+Mul乘法函数，求导为乘法的系数，所以需要存储相乘的两个数
+
+、、、
+    def forward(ctx: Context, a: float, b: float) -> float:
+        ctx.save_for_backward(a,b)
+        return a * b
+、、、
+
+Neg函数，求导加上负号即可
+
+、、、
+    def forward(ctx: Context, a: float) -> float:
+        return operators.neg(a)
+、、、
+
+Sigmoid、Relu、Exp同理
+
+### Task 1.3: Chain Rule
+
+实现链式法则chain_rule函数。首先我们需要理解几个类：ScalarHistory、Scalar、ScalarFunction、Context
+
+- Scalar：用于自动微分的标量值。尽可能地表现为标准的Python数字，同时跟踪它的相关函数操作，只能通过ScalarFunction操作。
+
+- ScalarHistory：存储对当前Scalar操作的历史，包含ScalarFunction和Context
+
+- ScalarFunction：用于操作上面的Scalar变量的数学函数，用于被不同数学函数继承
+
+- Context：存储前向传播需要记录的值，如Task1.2中提到
+
+、、、
+    def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
+        h = self.history
+        assert h is not None
+        assert h.last_fn is not None
+        assert h.ctx is not None
+
+        x = h.last_fn._backward(h.ctx, d_output)
+        return list(zip(h.inputs, x))
+、、、
 
 
+### Task 1.4: Backpropagation
+
+1、首先需要实现所有的反向传播函数（1.2实现了正向传播），核心是使用正向传播时存储的上下文
+
+Add加法函数，由于加法导数为1，直接返回当前的入参，由于加法有两个输入参数，所以需要返回两份
+
+、、、
+    def backward(ctx: Context, d_output: float) -> Tuple[float, ...]:
+        return d_output, d_output
+、、、
+
+Log函数，需要使用正向传播存储的系数
+
+、、、
+    def backward(ctx: Context, d_output: float) -> float:
+        (a,) = ctx.saved_values
+        return operators.log_back(a, d_output)
+、、、
+
+Mul乘法函数，乘法导数为其相乘的系数
+
+、、、
+    def backward(ctx: Context, d_output: float) -> Tuple[float, float]:
+        a, b = ctx.saved_values
+        return b * d_output, a * d_output
+、、、
+
+后面函数都是类似思路，不过有两个值得注意，LT和EQ导数都是0，入参都是两个，所以直接返回0
+
+2、其次我们需要实现拓扑排序函数，这个就是leetcode原题，在此之前我们需要研究下Variable类
+
+
+
+、、、
+def topological_sort(variable: Variable) -> Iterable[Variable]:
+    sort = []
+    visited = set()
+
+    def dfs(v: Variable):
+        # if the node is already visited or constant, return
+        if v.unique_id in visited or v.is_constant():
+            return
+
+        # otherwise, add the node to the visited set
+        visited.add(v.unique_id)
+
+        # recursively visit all the parents of the node
+        for parent in v.parents:
+            dfs(parent)
+
+        # add the current node at the front of the result order list
+        sort.insert(0, v)
+
+    dfs(variable)
+
+    return sort
+、、、
+
+3、最后实现反向传播backpropagate函数
+
+、、、
+def backpropagate(variable: Variable, deriv: Any) -> None:
+    
+    order = topological_sort(variable)
+
+    # initialize derivatives dictionary
+    gradients = {variable.unique_id: deriv}
+
+    for v in order:
+        # constant nodes do not contribute to the derivatives
+        if v.is_constant():
+            continue
+
+        # derivative of the current tensor
+        grad = gradients.get(v.unique_id)
+
+        # chain rule to propogate to parents
+        if not v.is_leaf():
+            for parent, chain_deriv in v.chain_rule(grad):
+                if parent.unique_id in gradients:
+                    gradients[parent.unique_id] += chain_deriv
+                else:
+                    gradients[parent.unique_id] = chain_deriv
+
+        # only accumulate derivatives for leaf nodes
+        if v.is_leaf():
+            v.accumulate_derivative(grad)
+、、、
 
 
 
