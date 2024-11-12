@@ -241,6 +241,7 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
 3、最后实现反向传播backpropagate函数
 
 、、、
+
 def backpropagate(variable: Variable, deriv: Any) -> None:
     
     order = topological_sort(variable)
@@ -267,6 +268,7 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
         # only accumulate derivatives for leaf nodes
         if v.is_leaf():
             v.accumulate_derivative(grad)
+            
 、、、
 
 
