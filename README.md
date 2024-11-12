@@ -7,10 +7,12 @@
 该任务是完成minitorch/operators.py文件中的数学函数，唯一需要注意的是log函数的实现，为了防止向下溢出，输入的参数变为0，对x加一个极小的浮点值1e-6
 
 、、、
+
 EPS = 1e-6
 
 def log(x):
     return math.log(x + EPS)
+    
 、、、
 
 ### Task 0.2: Testing and Debugging
@@ -22,17 +24,22 @@ def log(x):
 完成map、zip和reduce三个基本函数
 
 、、、
+
 def map(func):
      return lambda list: [func(x) for x in list]
+     
 、、、
 
 、、、
+
 def zipWith(func):
     return lambda list1, list2: [func(x, y) for x, y in zip(list1, list2)]
+    
 、、、
 
 map 函数用于对序列中的每个项目应用一个函数
 、、、
+
 def reduce(func, start):
     def _reduce(func, list, start):
         iterator = iter(list)
@@ -40,28 +47,37 @@ def reduce(func, start):
             start = func(start, i)
         return start
     return lambda list: _reduce(func, list, start)
+    
 、、、
 
 通过三个函数实现negList、addLists、sum、prod
 
 、、、
+
 def negList(list):
     return map(neg)(list)
+    
 、、、
 
 、、、
+
 def addLists(list1, list2):
     return zipWith(add)(list1, list2)
+    
 、、、
 
 、、、
+
 def sum(list):
     return reduce(add, 0)(list)
+    
 、、、
 
 、、、
+
 def prod(list):
     return reduce(mul, 1)(list)
+    
 、、、
 
 ### Task 0.4: Modules
@@ -77,15 +93,9 @@ eval(), train(): 设置模块为评估模式或训练模式。
 实现train、eval、named_parameters和parameters。主要是named_parameters的实现
 
 、、、
+
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
-        """Collect all the parameters of this module and its descendents.
-
-        Returns
-        -------
-            The name and `Parameter` of each ancestor parameter.
-
-        """
-
+        
         def _named_parameters(module, prefix=""):
             for name, param in module._parameters.items():
                 yield (prefix + name, param)
@@ -93,7 +103,12 @@ eval(), train(): 设置模块为评估模式或训练模式。
                 yield from _named_parameters(param, prefix + name + ".")
 
         return list(_named_parameters(self))
+        
 、、、
+
+
+## Module1
+
 
 
 
